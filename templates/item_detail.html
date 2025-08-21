@@ -31,7 +31,11 @@
                 <h1 class="mt-2 text-3xl font-bold text-gray-900">{{ item.name }}</h1>
                 <p class="mt-4 text-lg text-gray-600">{{ item.description }}</p>
                 <div class="mt-6">
-                    <span class="text-4xl font-bold text-gray-900">${{ item.price }}</span>
+                    <span class="text-4xl font-bold text-gray-900">
+                        {% if item.currency == 'usd' %}$
+                        {% elif item.currency == 'eur' %}€
+                        {% endif %}{{ item.price }}
+                    </span>
                     <span class="ml-2 text-sm text-gray-500">{{ item.currency|upper }}</span>
                 </div>
                 <div class="mt-8">
@@ -47,16 +51,13 @@
 
 {% block extra_scripts %}
 <script>
-    // Инициализируем Stripe с правильным публикуемым ключом
     const stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
     const checkoutButton = document.getElementById('checkout-button');
     
     checkoutButton.addEventListener('click', function() {
-        // Показываем индикатор загрузки
         checkoutButton.disabled = true;
         checkoutButton.textContent = 'Processing...';
         
-        // Выполняем запрос к API для получения session_id
         fetch('{% url "create_checkout_session" item.id %}')
             .then(function(response) {
                 return response.json();
