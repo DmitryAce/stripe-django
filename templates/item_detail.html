@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ item.name }} - E-Commerce Store{% endblock %}
+
+{% block extra_head %}
+<style>
+    .buy-button {
+        transition: all 0.3s ease;
+    }
+    .buy-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="md:flex">
+            <div class="md:flex-shrink-0">
+                <div class="h-64 w-full md:w-96 bg-gray-200 flex items-center justify-center">
+                    <svg class="h-16 w-16 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="p-8">
+                <div class="uppercase tracking-wide text-sm text-indigo-500 font-semibold">Product</div>
+                <h1 class="mt-2 text-3xl font-bold text-gray-900">{{ item.name }}</h1>
+                <p class="mt-4 text-lg text-gray-600">{{ item.description }}</p>
+                <div class="mt-6">
+                    <span class="text-4xl font-bold text-gray-900">${{ item.price }}</span>
+                    <span class="ml-2 text-sm text-gray-500">{{ item.currency|upper }}</span>
+                </div>
+                <div class="mt-8">
+                    <button id="checkout-button" class="w-full buy-button bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Инициализируем Stripe с правильным публикуемым ключом
+    const stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
+    const checkoutButton = document.getElementById('checkout-button');
+    
+    checkoutButton.addEventListener('click', function() {
+        // Показываем индикатор загрузки
+        checkoutButton.disabled = true;
+        checkoutButton.textContent = 'Processing...';
+        
+        // Выполняем запрос к API для получения session_id
+        fetch('{% url "create_checkout_session" item.id %}')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(session) {
+                if (session.error) {
+                    throw new Error(session.error);
+                }
+                return stripe.redirectToCheckout({ sessionId: session.id });
+            })
+            .then(function(result) {
+                if (result.error) {
+                    alert(result.error.message);
+                    checkoutButton.disabled = false;
+                    checkoutButton.textContent = 'Buy Now';
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert('An error occurred: ' + error.message);
+                checkoutButton.disabled = false;
+                checkoutButton.textContent = 'Buy Now';
+            });
+    });
+</script>
+{% endblock %}

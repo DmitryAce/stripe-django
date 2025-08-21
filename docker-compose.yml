@@ -1,0 +1,53 @@
+services:
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/server.crt:/server.crt:ro
+      - ./nginx/server.key:/server.key:ro
+      - ./staticfiles:/app/staticfiles
+    environment:
+      TZ: Europe/Moscow
+    ports:
+      - "8089:443"
+    networks:
+      - ecommerce_network
+    depends_on:
+      - ecommerce-api
+
+  ecommerce-api:
+    container_name: ecommerce-api
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      TZ: Europe/Moscow
+    volumes:
+      - .:/app
+    command: ./boot.sh
+    networks:
+      - ecommerce_network
+    depends_on:
+      - ecommerce-db
+
+  ecommerce-db:
+    container_name: ecommerce-db
+    image: postgres:latest
+    environment:
+      TZ: Europe/Moscow
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ecom_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ecommerce_network
+    restart: always
+
+networks:
+  ecommerce_network:
+    driver: bridge
+
+volumes:
+  ecom_postgres_data:
